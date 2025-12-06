@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ping Pong contra un bot</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemUI, Segoe UI, sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at top, #222, #000);
+      color: #f5f5f5;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      position: relative;
+      width: 900px;
+      max-width: 100%;
+      aspect-ratio: 16 / 9;
+      margin: 0 auto;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    #gameCanvas {
+      background: #111;
+      border-radius: 12px;
+      box-shadow: 0 0 25px rgba(0,0,0,0.7);
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Pantalles a pantalla completa */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: stretch;
+      justify-content: stretch;
+      background: rgba(0,0,0,0.85);
+      z-index: 10;
+    }
+
+    .hidden { display: none !important; }
+
+    .menu-card {
+      background: rgba(20,20,20,0.95);
+      border-radius: 0;
+      padding: 24px 40px;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 0 25px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-y: auto;
+    }
+
+    .menu-inner {
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+      text-align: left;
+    }
+
+    .menu-header {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .menu-title {
+      font-size: 2rem;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .menu-subtitle {
+      font-size: 0.9rem;
+      opacity: 0.85;
+      margin-bottom: 10px;
+    }
+
+    h4 {
+      margin-top: 12px;
+      margin-bottom: 4px;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      opacity: 0.9;
+    }
+
+    .btn {
+      padding: 9px 20px;
+      margin: 4px 6px 4px 0;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transition: 0.15s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6, #22c55e);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #222;
+      color: #eee;
+      border: 1px solid #555;
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: #eee;
+      border: 1px solid #777;
+    }
+
+    .btn:hover:not(.btn-disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    }
+
+    .btn-selected {
+      border: 2px solid #22c55e !important;
+    }
+
+    .btn-disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    .rules {
+      text-align: left;
+      margin-top: 10px;
+      font-size: 0.85rem;
+      opacity: 0.9;
+    }
+
+    .kbd {
+      background: #111;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #444;
+      font-size: 0.8rem;
+    }
+
+    #playerNameInput {
+      width: 260px;
+      max-width: 100%;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #555;
+      background: #111;
+      color: #f5f5f5;
+      font-size: 0.9rem;
+      text-align: center;
+      outline: none;
+    }
+
+    #playerNameInput:focus {
+      border-color: #22c55e;
+    }
+
+    #onlineScoreWrapper {
+      margin-top: 8px;
+      font-size: 0.9rem;
+      opacity: 0.95;
+    }
+
+    #onlineScoreValue {
+      font-weight: 700;
+      color: #22c55e;
+    }
+
+    #onlineLevelText {
+      font-size: 0.9rem;
+      margin-top: 4px;
+      opacity: 0.9;
+    }
+
+    #onlineProgressText {
+      font-size: 0.8rem;
+      opacity: 0.85;
+      margin-top: 2px;
+    }
+
+    .progress-bar {
+      margin-top: 6px;
+      width: 260px;
+      max-width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: #111;
+      overflow: hidden;
+      border: 1px solid #333;
+    }
+
+    .progress-bar-inner {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #22c55e, #3b82f6);
+      transition: width 0.2s ease-out;
+    }
+
+    /* Matchmaking */
+    #matchmakingDots {
+      margin-top: 8px;
+      font-size: 1.2rem;
+      letter-spacing: 0.2em;
+      opacity: 0.8;
+    }
+
+    @media (max-width: 700px) {
+      .menu-card {
+        padding: 18px 16px;
+      }
+      .menu-title {
+        font-size: 1.6rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <canvas id="gameCanvas" width="900" height="506"></canvas>
+  </div>
+
+  <!-- MENÚ PRINCIPAL (pantalla completa) -->
+  <div id="mainMenu" class="overlay">
+    <div class="menu-card">
+      <div class="menu-inner">
+        <div class="menu-header">
+          <div class="menu-title">Ping Pong</div>
+          <div class="menu-subtitle">Tria el teu nom, el tipus de partida i el mode</div>
+        </div>
+
+        <h4>El teu nom</h4>
+        <div>
+          <input
+            id="playerNameInput"
+            type="text"
+            maxlength="16"
+            placeholder="Escriu el teu nom..."
+          />
+        </div>
+        <div class="menu-subtitle" style="font-size:0.8rem;">
+          Només lletres (A–Z, a–z), sense accents ni espais.
+        </div>
+
+        <div id="onlineScoreWrapper">
+          Puntuació: <span id="onlineScoreValue">0</span>
+        </div>
+        <div id="onlineLevelText"></div>
+        <div id="onlineProgressText"></div>
+        <div class="progress-bar">
+          <div id="onlineProgressBarInner" class="progress-bar-inner"></div>
+        </div>
+
+        <h4>1. Tipus de partida</h4>
+        <div>
+          <button id="btnType2P" class="btn btn-secondary">2 jugadors</button>
+          <button id="btnTypeOnline" class="btn btn-secondary">Jugar contra un bot</button>
+        </div>
+
+        <h4>2. Mode de joc</h4>
+        <div>
+          <button id="btnModeClassic" class="btn btn-outline btn-disabled">Clàssic (7 punts)</button>
+          <button id="btnModeRapid" class="btn btn-outline btn-disabled">Ràpid (7 punts)</button>
+          <button id="btnModeLong" class="btn btn-outline btn-disabled">Long (14 punts)</button>
+        </div>
+
+        <h4>3. Començar</h4>
+        <div>
+          <button id="btnStartGame" class="btn btn-primary btn-disabled">
+            Començar partida
+          </button>
+        </div>
+        <div class="menu-subtitle" style="font-size:0.8rem;">
+          Cal triar un tipus de partida i un mode per poder començar.
+        </div>
+
+        <div class="rules">
+          <p><strong>Jugador esquerra (tu):</strong> <span class="kbd">W</span> / <span class="kbd">S</span></p>
+          <p><strong>Jugador dreta:</strong> <span class="kbd">↑</span> / <span class="kbd">↓</span> (en mode 2 jugadors)</p>
+          <p style="margin-top:6px;">
+            <strong>Punts (mai negatius, només contra un bot):</strong><br>
+            Clàssic: +30 / −10 · Ràpid: +15 / −7 · Long: +55 / −18
+          </p>
+          <p style="margin-top:4px;">
+            Nivells de puntuació: 0–89 (Nivell 1), 90–199 (Nivell 2),
+            200–499 (Nivell 3), 500–1000 (Nivell 4), +1000 (Nivell 5).<br>
+            La dificultat del bot puja amb la teva puntuació.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANTALLA FINAL -->
+  <div id="endScreen" class="overlay hidden">
+    <div class="menu-card">
+      <div class="menu-inner" style="text-align:center;max-width:400px;">
+        <div id="winnerText" class="menu-title">Guanyador!</div>
+        <div id="modeInfoText" class="menu-subtitle"></div>
+        <button id="btnReplay" class="btn btn-primary" style="margin-top:10px;">Repetir partida</button>
+        <button id="btnBackToMenu" class="btn btn-secondary">Tornar al menú</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANTALLA FALSA DE MATCHMAKING -->
+  <div id="matchmakingOverlay" class="overlay hidden">
+    <div class="menu-card">
+      <div class="menu-inner" style="text-align:center;max-width:360px;">
+        <div class="menu-title" style="font-size:1.4rem;">Buscant un bot rival...</div>
+        <div id="matchmakingDots">···</div>
+        <div class="menu-subtitle" style="margin-top:10px;">Connectant amb el servidor...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== CONFIGURACIÓ BÀSICA =====
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const mainMenu = document.getElementById("mainMenu");
+    const endScreen = document.getElementById("endScreen");
+    const matchmakingOverlay = document.getElementById("matchmakingOverlay");
+
+    const winnerText = document.getElementById("winnerText");
+    const modeInfoText = document.getElementById("modeInfoText");
+    const dotsEl = document.getElementById("matchmakingDots");
+
+    const btnType2P = document.getElementById("btnType2P");
+    const btnTypeOnline = document.getElementById("btnTypeOnline");
+    const btnModeClassic = document.getElementById("btnModeClassic");
+    const btnModeRapid = document.getElementById("btnModeRapid");
+    const btnModeLong = document.getElementById("btnModeLong");
+    const btnStartGame = document.getElementById("btnStartGame");
+    const btnReplay = document.getElementById("btnReplay");
+    const btnBackToMenu = document.getElementById("btnBackToMenu");
+
+    const playerNameInput = document.getElementById("playerNameInput");
+    const onlineScoreValue = document.getElementById("onlineScoreValue");
+    const onlineLevelText = document.getElementById("onlineLevelText");
+    const onlineProgressText = document.getElementById("onlineProgressText");
+    const onlineProgressBarInner = document.getElementById("onlineProgressBarInner");
+
+    const NAME_KEY = "pongPlayerNameV1";
+    const SCORE_KEY = "pongPlayerScoreV1";
+
+    let playerName = "Tu";
+    let playerScore = 0;
+
+    // Nivells per intervals de punts
+    function getLevelInfo(score) {
+      let level, min, max;
+      if (score <= 89) { level = 1; min = 0;   max = 89; }
+      else if (score <= 199) { level = 2; min = 90;  max = 199; }
+      else if (score <= 499) { level = 3; min = 200; max = 499; }
+      else if (score <= 1000) { level = 4; min = 500; max = 1000; }
+      else { level = 5; min = 1001; max = null; }
+
+      let rangeText = max === null ? "1001+ punts" : `${min}-${max} punts`;
+      let progressText = "";
+      let percent = null;
+
+      if (max === null) {
+        progressText = `Punts actuals: ${score}`;
+      } else {
+        const span = max - min + 1;
+        const progress = Math.max(0, Math.min(span, score - min));
+        percent = Math.round((progress / span) * 100);
+        progressText = `${score}/${max} punts (aprox. ${percent}%)`;
+      }
+
+      return { level, min, max, rangeText, progressText, percent };
+    }
+
+    // Carrega dades guardades
+    (function loadPlayerData() {
+      try {
+        const storedName = localStorage.getItem(NAME_KEY);
+        if (storedName && /^[A-Za-z]+$/.test(storedName)) {
+          playerName = storedName;
+        }
+        const storedScore = localStorage.getItem(SCORE_KEY);
+        if (storedScore !== null && !isNaN(parseInt(storedScore, 10))) {
+          playerScore = parseInt(storedScore, 10);
+          if (playerScore < 0) playerScore = 0;
+        }
+      } catch (e) {}
+      playerNameInput.value = playerName;
+      updateScoreAndLevelUI();
+    })();
+
+    function savePlayerName() {
+      try { localStorage.setItem(NAME_KEY, playerName); } catch (e) {}
+    }
+
+    function savePlayerScore() {
+      try { localStorage.setItem(SCORE_KEY, playerScore.toString()); } catch (e) {}
+    }
+
+    function updateScoreAndLevelUI() {
+      onlineScoreValue.textContent = playerScore;
+      const info = getLevelInfo(playerScore);
+      onlineLevelText.textContent = `Nivell ${info.level} (${info.rangeText})`;
+
+      if (info.max === null) {
+        onlineProgressText.textContent = info.progressText;
+        onlineProgressBarInner.style.width = "100%";
+      } else {
+        onlineProgressText.textContent = info.progressText;
+        const pct = Math.max(0, Math.min(100, info.percent || 0));
+        onlineProgressBarInner.style.width = pct + "%";
+      }
+    }
+
+    // Validació nom
+    playerNameInput.addEventListener("input", () => {
+      const raw = playerNameInput.value;
+      const clean = raw.replace(/[^A-Za-z]/g, "");
+      if (clean !== raw) {
+        const pos = playerNameInput.selectionStart;
+        playerNameInput.value = clean;
+        playerNameInput.selectionStart = playerNameInput.selectionEnd = Math.max(pos - 1, 0);
+      }
+    });
+
+    playerNameInput.addEventListener("blur", () => {
+      let val = playerNameInput.value.trim();
+      if (!val) {
+        playerName = "Tu";
+        playerNameInput.value = playerName;
+      } else {
+        playerName = val;
+      }
+      savePlayerName();
+    });
+
+    // ===== ESTAT DEL JOC =====
+    let isPlaying = false;
+    let isOnline = false;  // "online" = contra un bot
+    let targetScore = 7;
+    let speedFactor = 1;
+    let opponentName = "Jugador 2";
+    let opponentScoreFake = 0; // puntuació falsa del bot
+
+    let selectedType = null;  // "2p" | "online"
+    let selectedMode = null;  // "classic" | "rapid" | "long"
+
+    const paddleWidth = 14;
+    const paddleHeight = 90;
+    const basePaddleSpeed = 6;
+    const baseBallSpeed = 5;
+
+    let paddleSpeed = basePaddleSpeed;
+    let initialBallSpeed = baseBallSpeed;
+
+    const leftPaddle = { x: 40, y: canvas.height/2 - paddleHeight/2, vy: 0 };
+    const rightPaddle = { x: canvas.width - 40 - paddleWidth, y: canvas.height/2 - paddleHeight/2, vy: 0 };
+    const ball = { x: canvas.width/2, y: canvas.height/2, vx: baseBallSpeed, vy: baseBallSpeed };
+
+    let scoreLeft = 0;
+    let scoreRight = 0;
+
+    let lastGameConfig = {
+      isOnline: false,
+      targetScore: 7,
+      speedFactor: 1,
+      modeName: "Clàssic (7 punts)",
+      opponentName: "Jugador 2",
+      selectedMode: "classic"
+    };
+
+    // ===== USERNAMES =====
+    const usernames = [
+      "ShadowFox","PixelNinja","LunaWave","TurboKoala","NightRider","StarBlazer",
+      "NeoCatalan","GhostCoder","AquaStorm","SilentArrow","NovaSoul","QuantumBee",
+      "RubyFalcon","EchoKnight","FrostByte","SolarDrift","CosmicOwl","TurboPenguin",
+      "MangoRocket","GlitchWizard","JellySamurai","IronTurtle","ZenRaccoon","VortexWolf",
+      "CobaltTiger","PixelDragon","GhostPanda","RapidFalcon","MoonSprinter","LazyNinja",
+      "RedPhoenix","BlueMeteor","CoffeeByte","AstroMole","JumperCat","SilentMeteor",
+      "CrystalShark","GoldenKite","NeonSparrow","StormHamster","RocketOtter","BlitzLlama",
+      "GalaxyYak","CleverMantis","WindViper","TurboGecko","CosmicBee","DriftPigeon",
+      "ShadowYak","PixelJaguar","NinjaSeal","FuzzyDragon","MagmaKoala","SilverBadger",
+      "QuantumHawk","SushiKnight","CyberCobra","StormFox","NovaRhino","GlitchRaven",
+      "JellyMeteor","IronFalcon","ZenMarmot","VortexOtter","CobaltShark","PixelWombat",
+      "GhostMantis","RapidKangaroo","MoonOtter","LazyMeteor","RedRaptor","BlueComet",
+      "CoffeePanda","AstroStag","JumperYak","SilentRaven","CrystalFox","GoldenWolf",
+      "NeonCrab","StormPuffin","RocketLynx","BlitzKoala","GalaxyPanda","CleverSeal",
+      "WindYak","TurboStork","CosmicRhino","DriftLemur","ShadowLynx","PixelRhino",
+      "NinjaYak","FuzzyKoala","MagmaStag","SilverRhino","QuantumOtter","SushiPigeon",
+      "CyberYak","StormYak"
+    ];
+
+    function getRandomUsername() {
+      const i = Math.floor(Math.random() * usernames.length);
+      return usernames[i];
+    }
+
+    function randomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    // Genera puntuació falsa per al bot segons el teu nivell
+    function generateFakeOpponentScore() {
+      const info = getLevelInfo(playerScore);
+      let fake = 0;
+
+      if (info.level === 1) {
+        fake = randomInt(0, 89);
+      } else if (info.level === 2) {
+        fake = randomInt(90, 199);
+      } else if (info.level === 3) {
+        fake = randomInt(200, 499);
+      } else if (info.level === 4) {
+        fake = randomInt(500, 1000);
+      } else {
+        // Nivell 5: 1001-1800, però menys probabilitat que sigui > playerScore
+        const lowerMin = 1001;
+        const lowerMax = Math.max(playerScore, lowerMin);
+        const higherMin = Math.max(playerScore + 1, lowerMin);
+        const higherMax = 1800;
+        const r = Math.random();
+
+        if (r < 0.7 || higherMin > higherMax) {
+          fake = randomInt(lowerMin, lowerMax);
+        } else {
+          fake = randomInt(higherMin, higherMax);
+        }
+      }
+
+      opponentScoreFake = fake;
+    }
+
+    // ===== BOT HUMÀ + DIFICULTAT REAL (segons playerScore) =====
+    const bot = {
+      mode: "normal",
+      targetY: canvas.height / 2,
+      reactionTimer: 0,
+      changeModeTimer: 0
+    };
+
+    const defaultBotDifficulty = {
+      errorScale: 1,
+      forcedErrorChance: 0.15,
+      speedScale: 1,
+      reactionScale: 1
+    };
+
+    let botDifficulty = { ...defaultBotDifficulty };
+
+    function randomBotMode() {
+      const r = Math.random();
+      if (r < 0.5) return "normal";
+      if (r < 0.8) return "aggressive";
+      return "lazy";
+    }
+
+    function updateBotDifficultyFromScore() {
+      let s = playerScore;
+      if (s < 0) s = 0;
+
+      if (s <= 89) {
+        botDifficulty.errorScale = 2.5;
+        botDifficulty.forcedErrorChance = 0.25;
+        botDifficulty.speedScale = 0.6;
+        botDifficulty.reactionScale = 1.5;
+      } else if (s <= 199) {
+        botDifficulty.errorScale = 1.5;
+        botDifficulty.forcedErrorChance = 0.20;
+        botDifficulty.speedScale = 0.8;
+        botDifficulty.reactionScale = 1.2;
+      } else if (s <= 499) {
+        botDifficulty = { ...defaultBotDifficulty };
+      } else if (s <= 1000) {
+        botDifficulty.errorScale = 0.7;
+        botDifficulty.forcedErrorChance = 0.10;
+        botDifficulty.speedScale = 1.2;
+        botDifficulty.reactionScale = 0.85;
+      } else {
+        botDifficulty.errorScale = 0.5;
+        botDifficulty.forcedErrorChance = 0.07;
+        botDifficulty.speedScale = 1.5;
+        botDifficulty.reactionScale = 0.7;
+      }
+    }
+
+    function botErrorOffset() {
+      let range = 25;
+      if (bot.mode === "lazy") range = 45;
+      if (bot.mode === "aggressive") range = 20;
+
+      const speed = Math.sqrt(ball.vx*ball.vx + ball.vy*ball.vy);
+      if (speed > initialBallSpeed * 1.3) range += 20;
+
+      range *= botDifficulty.errorScale;
+
+      return (Math.random() * 2 - 1) * range;
+    }
+
+    function resetBotState() {
+      bot.mode = randomBotMode();
+      bot.targetY = canvas.height/2;
+
+      const base = randomInt(6, 14);
+      bot.reactionTimer = Math.max(1, Math.round(base * botDifficulty.reactionScale));
+      bot.changeModeTimer = randomInt(180, 420);
+    }
+
+    function updateBot() {
+      rightPaddle.vy = 0;
+
+      const center = rightPaddle.y + paddleHeight / 2;
+
+      bot.changeModeTimer--;
+      if (bot.changeModeTimer <= 0) {
+        bot.mode = randomBotMode();
+        bot.changeModeTimer = randomInt(240, 480);
+      }
+
+      if (ball.vx <= 0) {
+        const diff = (canvas.height/2) - center;
+        const baseFactor = (bot.mode === "lazy") ? 0.35 : 0.5;
+        const factor = baseFactor * botDifficulty.speedScale;
+        if (Math.abs(diff) > 6) {
+          rightPaddle.vy = diff > 0 ? paddleSpeed * factor : -paddleSpeed * factor;
+        }
+        return;
+      }
+
+      bot.reactionTimer--;
+      if (bot.reactionTimer <= 0) {
+        const minBase = (bot.mode === "aggressive") ? 3 : 6;
+        const maxBase = (bot.mode === "lazy") ? 16 : 10;
+        const baseVal = randomInt(minBase, maxBase);
+        bot.reactionTimer = Math.max(1, Math.round(baseVal * botDifficulty.reactionScale));
+
+        bot.targetY = ball.y + botErrorOffset();
+
+        if (Math.random() < 0.08) {
+          bot.targetY += (Math.random() < 0.5 ? -1 : 1) * randomInt(20, 60);
+        }
+      }
+
+      const nearRightSide = ball.x > canvas.width * 0.66;
+      const speed = Math.abs(ball.vx);
+      if (nearRightSide && speed > initialBallSpeed && Math.random() < botDifficulty.forcedErrorChance) {
+        if (Math.random() < 0.5) {
+          rightPaddle.vy = 0;
+        } else {
+          rightPaddle.vy = paddleSpeed * (ball.y < center ? 1 : -1) * botDifficulty.speedScale;
+        }
+        return;
+      }
+
+      const diffY = bot.targetY - center;
+      if (Math.abs(diffY) > 4) {
+        let baseFactor = 0.9;
+        if (bot.mode === "lazy") baseFactor = 0.7;
+        if (bot.mode === "aggressive") baseFactor = 1.1;
+        const factor = baseFactor * botDifficulty.speedScale;
+        rightPaddle.vy = diffY > 0 ? paddleSpeed * factor : -paddleSpeed * factor;
+      } else {
+        rightPaddle.vy = 0;
+      }
+    }
+
+    // ===== MENÚ: tipus i mode =====
+    function enableModeButtons() {
+      [btnModeClassic, btnModeRapid, btnModeLong].forEach(b => b.classList.remove("btn-disabled"));
+    }
+
+    function clearTypeSelection() {
+      btnType2P.classList.remove("btn-selected");
+      btnTypeOnline.classList.remove("btn-selected");
+    }
+
+    function clearModeSelection() {
+      btnModeClassic.classList.remove("btn-selected");
+      btnModeRapid.classList.remove("btn-selected");
+      btnModeLong.classList.remove("btn-selected");
+    }
+
+    function updateStartButtonState() {
+      if (selectedType && selectedMode) {
+        btnStartGame.classList.remove("btn-disabled");
+      } else {
+        btnStartGame.classList.add("btn-disabled");
+      }
+    }
+
+    btnType2P.addEventListener("click", () => {
+      selectedType = "2p";
+      isOnline = false;
+      clearTypeSelection();
+      btnType2P.classList.add("btn-selected");
+      enableModeButtons();
+      opponentName = "Jugador 2";
+      updateStartButtonState();
+    });
+
+    btnTypeOnline.addEventListener("click", () => {
+      selectedType = "online";
+      isOnline = true; // però és "contra un bot"
+      clearTypeSelection();
+      btnTypeOnline.classList.add("btn-selected");
+      enableModeButtons();
+      startFakeMatchmaking();
+      updateStartButtonState();
+    });
+
+    function selectMode(modeKey) {
+      if (!selectedType) return;
+
+      selectedMode = modeKey;
+      clearModeSelection();
+
+      let modeNameText = "";
+      if (modeKey === "classic") {
+        btnModeClassic.classList.add("btn-selected");
+        targetScore = 7;
+        speedFactor = 1;
+        modeNameText = "Clàssic (7 punts)";
+      } else if (modeKey === "rapid") {
+        btnModeRapid.classList.add("btn-selected");
+        targetScore = 7;
+        speedFactor = 1.5;
+        modeNameText = "Ràpid (7 punts, tot 1.5x)";
+      } else if (modeKey === "long") {
+        btnModeLong.classList.add("btn-selected");
+        targetScore = 14;
+        speedFactor = 1;
+        modeNameText = "Long (14 punts)";
+      }
+
+      if (isOnline && !opponentName) {
+        opponentName = getRandomUsername();
+      }
+      if (!isOnline) {
+        opponentName = "Jugador 2";
+      }
+
+      lastGameConfig = {
+        isOnline,
+        targetScore,
+        speedFactor,
+        modeName: modeNameText,
+        opponentName,
+        selectedMode: selectedMode
+      };
+
+      updateStartButtonState();
+    }
+
+    btnModeClassic.addEventListener("click", () => selectMode("classic"));
+    btnModeRapid.addEventListener("click", () => selectMode("rapid"));
+    btnModeLong.addEventListener("click", () => selectMode("long"));
+
+    btnStartGame.addEventListener("click", () => {
+      if (!selectedType || !selectedMode) return;
+      startGame();
+    });
+
+    // ===== MATCHMAKING FALS =====
+    let dotsInterval = null;
+
+    function startFakeMatchmaking() {
+      matchmakingOverlay.classList.remove("hidden");
+      let step = 0;
+      if (dotsInterval) clearInterval(dotsInterval);
+      dotsInterval = setInterval(() => {
+        const dots = ["·", "··", "···", "····"];
+        dotsEl.textContent = dots[step % dots.length];
+        step++;
+      }, 300);
+
+      const delay = randomInt(2000, 5000);
+      setTimeout(() => {
+        opponentName = getRandomUsername();
+        generateFakeOpponentScore(); // puntuació falsa del bot
+        matchmakingOverlay.classList.add("hidden");
+        clearInterval(dotsInterval);
+      }, delay);
+    }
+
+    // ===== INICI / FI DE PARTIDA =====
+    function applySpeedFactor() {
+      paddleSpeed = basePaddleSpeed * speedFactor;
+      initialBallSpeed = baseBallSpeed * speedFactor;
+    }
+
+    function resetScoresAndPositions() {
+      scoreLeft = 0;
+      scoreRight = 0;
+      leftPaddle.y = canvas.height/2 - paddleHeight/2;
+      rightPaddle.y = canvas.height/2 - paddleHeight/2;
+      resetBall(Math.random() > 0.5 ? 1 : -1);
+    }
+
+    function resetBall(direction) {
+      ball.x = canvas.width/2;
+      ball.y = canvas.height/2;
+      const angle = Math.random() * 0.6 - 0.3;
+      ball.vx = initialBallSpeed * direction;
+      ball.vy = initialBallSpeed * angle * 2;
+      resetBotState();
+    }
+
+    function startGame() {
+      applySpeedFactor();
+      if (isOnline) {
+        updateBotDifficultyFromScore();
+        if (!opponentScoreFake) generateFakeOpponentScore();
+      }
+      resetScoresAndPositions();
+      resetBotState();
+      mainMenu.classList.add("hidden");
+      endScreen.classList.add("hidden");
+      isPlaying = true;
+    }
+
+    function updateOnlineScore(playerWon) {
+      if (!isOnline) return;
+
+      let delta = 0;
+      if (selectedMode === "classic") {
+        delta = playerWon ? 30 : -10;
+      } else if (selectedMode === "rapid") {
+        delta = playerWon ? 15 : -7;
+      } else if (selectedMode === "long") {
+        delta = playerWon ? 55 : -18;
+      }
+
+      playerScore += delta;
+      if (playerScore < 0) playerScore = 0;
+      savePlayerScore();
+      updateScoreAndLevelUI();
+    }
+
+    function endGame(winnerLabel, playerWonOnline) {
+      isPlaying = false;
+
+      if (typeof playerWonOnline === "boolean") {
+        updateOnlineScore(playerWonOnline);
+      }
+
+      winnerText.textContent = winnerLabel + " ha guanyat!";
+      modeInfoText.textContent =
+        (lastGameConfig.modeName || "") +
+        (lastGameConfig.isOnline ? " · Contra un bot" : " · 2 jugadors");
+
+      endScreen.classList.remove("hidden");
+    }
+
+    btnReplay.addEventListener("click", () => {
+      isOnline = lastGameConfig.isOnline;
+      opponentName = lastGameConfig.opponentName;
+      targetScore = lastGameConfig.targetScore;
+      speedFactor = lastGameConfig.speedFactor;
+      selectedMode = lastGameConfig.selectedMode;
+      applySpeedFactor();
+      if (isOnline) {
+        updateBotDifficultyFromScore();
+        generateFakeOpponentScore();
+      }
+      resetScoresAndPositions();
+      endScreen.classList.add("hidden");
+      isPlaying = true;
+    });
+
+    btnBackToMenu.addEventListener("click", () => {
+      window.location.reload();
+    });
+
+    // ===== INPUT =====
+    const keys = { w: false, s: false, ArrowUp: false, ArrowDown: false };
+
+    document.addEventListener("keydown", e => {
+      if (e.key in keys) keys[e.key] = true;
+    });
+
+    document.addEventListener("keyup", e => {
+      if (e.key in keys) keys[e.key] = false;
+    });
+
+    // ===== UPDATE =====
+    function checkScore() {
+      if (scoreLeft >= targetScore || scoreRight >= targetScore) {
+        let winnerLabel;
+        let playerWonOnline = null;
+
+        if (scoreLeft > scoreRight) {
+          winnerLabel = isOnline ? playerName : "Jugador 1";
+          if (isOnline) playerWonOnline = true;
+        } else {
+          winnerLabel = isOnline ? opponentName : "Jugador 2";
+          if (isOnline) playerWonOnline = false;
+        }
+
+        endGame(winnerLabel, playerWonOnline);
+      }
+    }
+
+    function update() {
+      if (!isPlaying) return;
+
+      leftPaddle.vy = 0;
+      rightPaddle.vy = 0;
+
+      if (keys.w) leftPaddle.vy = -paddleSpeed;
+      if (keys.s) leftPaddle.vy = paddleSpeed;
+
+      if (isOnline) {
+        updateBot();
+      } else {
+        if (keys.ArrowUp) rightPaddle.vy = -paddleSpeed;
+        if (keys.ArrowDown) rightPaddle.vy = paddleSpeed;
+      }
+
+      leftPaddle.y += leftPaddle.vy;
+      rightPaddle.y += rightPaddle.vy;
+
+      leftPaddle.y = Math.max(0, Math.min(canvas.height - paddleHeight, leftPaddle.y));
+      rightPaddle.y = Math.max(0, Math.min(canvas.height - paddleHeight, rightPaddle.y));
+
+      ball.x += ball.vx;
+      ball.y += ball.vy;
+
+      if (ball.y - 9 <= 0 || ball.y + 9 >= canvas.height) {
+        ball.vy *= -1;
+      }
+
+      if (
+        ball.x - 9 <= leftPaddle.x + paddleWidth &&
+        ball.y >= leftPaddle.y &&
+        ball.y <= leftPaddle.y + paddleHeight &&
+        ball.vx < 0
+      ) {
+        ball.vx *= -1;
+        const intersection = (ball.y - (leftPaddle.y + paddleHeight/2)) / (paddleHeight/2);
+        ball.vy = initialBallSpeed * intersection;
+      }
+
+      if (
+        ball.x + 9 >= rightPaddle.x &&
+        ball.y >= rightPaddle.y &&
+        ball.y <= rightPaddle.y + paddleHeight &&
+        ball.vx > 0
+      ) {
+        ball.vx *= -1;
+        const intersection = (ball.y - (rightPaddle.y + paddleHeight/2)) / (paddleHeight/2);
+        ball.vy = initialBallSpeed * intersection;
+      }
+
+      if (ball.x + 9 < 0) {
+        scoreRight++;
+        checkScore();
+        resetBall(1);
+      }
+      if (ball.x - 9 > canvas.width) {
+        scoreLeft++;
+        checkScore();
+        resetBall(-1);
+      }
+    }
+
+    // ===== DIBUIX =====
+    function drawCourt() {
+      ctx.fillStyle = "#050505";
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      ctx.setLineDash([10,10]);
+      ctx.strokeStyle = "#333";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(canvas.width/2,0);
+      ctx.lineTo(canvas.width/2,canvas.height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    function drawPaddles() {
+      ctx.fillStyle = "#e5e5e5";
+      ctx.fillRect(leftPaddle.x, leftPaddle.y, paddleWidth, paddleHeight);
+      ctx.fillRect(rightPaddle.x, rightPaddle.y, paddleWidth, paddleHeight);
+    }
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, 9, 0, Math.PI*2);
+      ctx.fillStyle = "#facc15";
+      ctx.fill();
+    }
+
+    function drawScoreAndNames() {
+      ctx.fillStyle = "#f5f5f5";
+      ctx.textAlign = "center";
+
+      // Noms
+      ctx.font = "16px system-ui";
+      ctx.fillText(playerName, canvas.width/2 - 140, 30);
+      ctx.fillText(isOnline ? opponentName : "Jugador 2", canvas.width/2 + 140, 30);
+
+      // Punts globals del jugador i del bot
+      ctx.font = "11px system-ui";
+      ctx.fillText("Punts: " + playerScore, canvas.width/2 - 140, 44);
+      if (isOnline) {
+        ctx.fillText("Punts: " + opponentScoreFake, canvas.width/2 + 140, 44);
+      }
+
+      // Marcador
+      ctx.font = "bold 40px system-ui";
+      ctx.fillText(scoreLeft, canvas.width/2 - 60, 70);
+      ctx.fillText(scoreRight, canvas.width/2 + 60, 70);
+
+      // Info mode + puntuació
+      ctx.font = "12px system-ui";
+      ctx.globalAlpha = 0.8;
+      ctx.fillText(lastGameConfig.modeName || "", canvas.width/2, canvas.height - 30);
+      if (isOnline) {
+        ctx.fillText("Puntuació: " + playerScore, canvas.width/2, canvas.height - 15);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function render() {
+      drawCourt();
+      drawPaddles();
+      drawBall();
+      drawScoreAndNames();
+    }
+
+    // ===== BUCLE PRINCIPAL =====
+    function gameLoop() {
+      update();
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+    gameLoop();
+  </script>
+</body>
+</html>
