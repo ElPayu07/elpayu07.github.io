@@ -146,7 +146,6 @@
       transition: width 0.2s ease-out;
     }
 
-    /* Animació nivell */
     .level-pulse { animation: levelPulse 0.75s ease-in-out 0s 2; }
     @keyframes levelPulse {
       0% { transform: scale(1); }
@@ -154,7 +153,6 @@
       100% { transform: scale(1); }
     }
 
-    /* Toast */
     .toast {
       position: fixed;
       left: 50%;
@@ -178,10 +176,9 @@
       100% { opacity: 0; transform: translateX(-50%) translateY(-10px) scale(0.98); }
     }
 
-    /* Matchmaking */
     #matchmakingDots { margin-top: 8px; font-size: 1.2rem; letter-spacing: 0.2em; opacity: 0.8; }
 
-    /* ==== BOTÓ PALES (dreta) ==== */
+    /* Botó PALES (dreta) */
     #btnOpenShop {
       position: fixed;
       right: 16px;
@@ -203,7 +200,7 @@
     #btnOpenShop:hover { transform: translateY(-50%) scale(1.03); }
     #btnOpenShop small { display:block; opacity:.8; font-weight:700; letter-spacing:0; text-transform:none; }
 
-    /* ==== POPUP BOTIGA ==== */
+    /* Modal botiga */
     #shopModal {
       position: fixed;
       inset: 0;
@@ -267,6 +264,8 @@
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.25);
       flex: 0 0 auto;
+      background-size: cover;
+      background-position: center;
     }
     .shop-left { display:flex; align-items:center; gap:10px; min-width:0; }
     .shop-name { font-weight: 900; letter-spacing: 0.02em; }
@@ -286,13 +285,11 @@
     <canvas id="gameCanvas" width="900" height="506"></canvas>
   </div>
 
-  <!-- Botó lateral "Pales" -->
   <button id="btnOpenShop" title="Botiga de pales">
     PALES
     <small id="shopCoinsTiny">0 🪙</small>
   </button>
 
-  <!-- Pop-up botiga -->
   <div id="shopModal" class="hidden" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true" aria-label="Botiga de pales">
       <div class="modal-header">
@@ -307,15 +304,13 @@
       </div>
       <div id="shopGrid" class="shop-grid"></div>
       <div class="modal-sub" style="margin-top:10px;opacity:.85;">
-        Progrés guardat al teu dispositiu (localStorage). No es perd per actualitzacions si no canvies de domini ni esborres dades del navegador.
+        Progrés guardat a localStorage: no es perd per actualitzacions (mentre no esborres dades del navegador i no canvies de domini).
       </div>
     </div>
   </div>
 
-  <!-- Toast -->
   <div id="toast" class="toast"></div>
 
-  <!-- MENÚ -->
   <div id="mainMenu" class="overlay">
     <div class="menu-card">
       <div class="menu-inner">
@@ -367,7 +362,6 @@
     </div>
   </div>
 
-  <!-- FINAL -->
   <div id="endScreen" class="overlay hidden">
     <div class="menu-card">
       <div class="menu-inner" style="text-align:center;max-width:480px;">
@@ -381,7 +375,6 @@
     </div>
   </div>
 
-  <!-- MATCHMAKING FALS -->
   <div id="matchmakingOverlay" class="overlay hidden">
     <div class="menu-card">
       <div class="menu-inner" style="text-align:center;max-width:360px;">
@@ -437,7 +430,7 @@
     const shopCoinsHeader = document.getElementById("shopCoinsHeader");
     const shopCoinsTiny = document.getElementById("shopCoinsTiny");
 
-    // ===== Storage keys (ESTABLES: no canviar si vols no perdre progrés) =====
+    // ===== Storage keys (no canviar si vols conservar progrés) =====
     const NAME_KEY = "pongPlayerNameV2";
     const SCORE_KEY = "pongPlayerScoreV2";
     const STREAK_NOW_KEY = "pongStreakNowV2";
@@ -539,19 +532,41 @@
     }
 
     // ===== Botiga / skins =====
-    const SHOP_PRICE = 120; // totes valen 120 (excepte blanc)
+    const SHOP_PRICE = 120;
+
+    // IMPORTANT: pala1.png ha d'estar al mateix lloc que index.html
+    // Si la poses a assets/, canvia "pala1.png" per "assets/pala1.png"
     const SKINS = [
-      { id: "white",  name: "Blanc",  price: 0,          color: "#e5e5e5" },
-      { id: "yellow", name: "Groc",   price: SHOP_PRICE, color: "#facc15" },
-      { id: "purple", name: "Lila",   price: SHOP_PRICE, color: "#a855f7" },
-      { id: "red",    name: "Vermell",price: SHOP_PRICE, color: "#ef4444" },
-      { id: "blue",   name: "Blau",   price: SHOP_PRICE, color: "#3b82f6" },
-      { id: "green",  name: "Verd",   price: SHOP_PRICE, color: "#22c55e" },
-      { id: "orange", name: "Tronja", price: SHOP_PRICE, color: "#f97316" }
+      { id: "white",  name: "Blanc",  price: 0,          type: "color", color: "#e5e5e5" },
+      { id: "yellow", name: "Groc",   price: SHOP_PRICE, type: "color", color: "#facc15" },
+      { id: "purple", name: "Lila",   price: SHOP_PRICE, type: "color", color: "#a855f7" },
+      { id: "red",    name: "Vermell",price: SHOP_PRICE, type: "color", color: "#ef4444" },
+      { id: "blue",   name: "Blau",   price: SHOP_PRICE, type: "color", color: "#3b82f6" },
+      { id: "green",  name: "Verd",   price: SHOP_PRICE, type: "color", color: "#22c55e" },
+      { id: "orange", name: "Tronja", price: SHOP_PRICE, type: "color", color: "#f97316" },
+
+      // ✅ Skin en imatge (la teva)
+      { id: "pala1",  name: "Pala 1", price: SHOP_PRICE, type: "image", src: "pala1.png" }
     ];
 
     let ownedSkins = { white: true };
     let equippedSkinId = "white";
+
+    // Carreguem imatges de skins
+    const skinImages = {}; // id -> { img, ready }
+    for (const s of SKINS) {
+      if (s.type === "image") {
+        const img = new Image();
+        skinImages[s.id] = { img, ready: false };
+        img.onload = () => { skinImages[s.id].ready = true; };
+        img.onerror = () => { skinImages[s.id].ready = false; };
+        img.src = s.src;
+      }
+    }
+
+    function getSkinById(id) {
+      return SKINS.find(s => s.id === id) || SKINS[0];
+    }
 
     function saveCoins() { try { localStorage.setItem(COINS_KEY, String(coins)); } catch(e) {} }
     function saveSkins() {
@@ -559,11 +574,6 @@
         localStorage.setItem(OWNED_SKINS_KEY, JSON.stringify(ownedSkins));
         localStorage.setItem(EQUIPPED_SKIN_KEY, equippedSkinId);
       } catch(e) {}
-    }
-
-    function getEquippedColor() {
-      const skin = SKINS.find(s => s.id === equippedSkinId) || SKINS[0];
-      return skin.color;
     }
 
     function updateCoinsUI() {
@@ -586,7 +596,14 @@
 
         const sw = document.createElement("div");
         sw.className = "swatch";
-        sw.style.background = skin.color;
+
+        if (skin.type === "image") {
+          sw.style.backgroundImage = `url("${skin.src}")`;
+          sw.style.backgroundColor = "#111";
+        } else {
+          sw.style.backgroundImage = "none";
+          sw.style.backgroundColor = skin.color;
+        }
 
         const textWrap = document.createElement("div");
         textWrap.style.minWidth = "0";
@@ -614,16 +631,11 @@
           buy.textContent = "Comprar";
           buy.onclick = () => {
             ensureAudio();
-            if (coins < skin.price) {
-              sfxNoMoney();
-              showToast("No tens prou monedes");
-              return;
-            }
+            if (coins < skin.price) { sfxNoMoney(); showToast("No tens prou monedes"); return; }
             coins -= skin.price;
             ownedSkins[skin.id] = true;
             equippedSkinId = skin.id;
-            saveCoins();
-            saveSkins();
+            saveCoins(); saveSkins();
             updateCoinsUI();
             renderShop();
             sfxBuy();
@@ -736,12 +748,8 @@
 
     btnOpenShop.addEventListener("click", openShop);
     btnCloseShop.addEventListener("click", closeShop);
-    shopModal.addEventListener("click", (e) => {
-      if (e.target === shopModal) closeShop(); // clic fora del quadre
-    });
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && !shopModal.classList.contains("hidden")) closeShop();
-    });
+    shopModal.addEventListener("click", (e) => { if (e.target === shopModal) closeShop(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !shopModal.classList.contains("hidden")) closeShop(); });
 
     // Validació nom
     playerNameInput.addEventListener("input", () => {
@@ -787,8 +795,8 @@
     let opponentName = "Jugador 2";
     let opponentScoreFake = 0;
 
-    let selectedType = null;  // "2p" | "online"
-    let selectedMode = null;  // "classic" | "rapid" | "long"
+    let selectedType = null;
+    let selectedMode = null;
 
     const paddleWidth = 14;
     const paddleHeight = 90;
@@ -798,482 +806,4 @@
     let paddleSpeed = basePaddleSpeed;
     let initialBallSpeed = baseBallSpeed;
 
-    const leftPaddle = { x: 40, y: canvas.height/2 - paddleHeight/2, vy: 0 };
-    const rightPaddle = { x: canvas.width - 40 - paddleWidth, y: canvas.height/2 - paddleHeight/2, vy: 0 };
-    const ball = { x: canvas.width/2, y: canvas.height/2, vx: baseBallSpeed, vy: baseBallSpeed };
-
-    let scoreLeft = 0;
-    let scoreRight = 0;
-
-    let lastGameConfig = {
-      isOnline: false,
-      targetScore: 7,
-      speedFactor: 1,
-      modeName: "Clàssic",
-      opponentName: "Jugador 2",
-      selectedMode: "classic"
-    };
-
-    // ===== USERNAMES =====
-    const usernames = [
-      "ShadowFox","PixelNinja","LunaWave","TurboKoala","NightRider","StarBlazer",
-      "NeoCatalan","GhostCoder","AquaStorm","SilentArrow","NovaSoul","QuantumBee",
-      "RubyFalcon","EchoKnight","FrostByte","SolarDrift","CosmicOwl","TurboPenguin",
-      "MangoRocket","GlitchWizard","JellySamurai","IronTurtle","ZenRaccoon","VortexWolf",
-      "CobaltTiger","PixelDragon","GhostPanda","RapidFalcon","MoonSprinter","LazyNinja",
-      "RedPhoenix","BlueMeteor","CoffeeByte","AstroMole","JumperCat","SilentMeteor",
-      "CrystalShark","GoldenKite","NeonSparrow","StormHamster","RocketOtter","BlitzLlama",
-      "GalaxyYak","CleverMantis","WindViper","TurboGecko","CosmicBee","DriftPigeon",
-      "ShadowYak","PixelJaguar","NinjaSeal","FuzzyDragon","MagmaKoala","SilverBadger",
-      "QuantumHawk","SushiKnight","CyberCobra","StormFox","NovaRhino","GlitchRaven",
-      "JellyMeteor","IronFalcon","ZenMarmot","VortexOtter","CobaltShark","PixelWombat",
-      "GhostMantis","RapidKangaroo","MoonOtter","LazyMeteor","RedRaptor","BlueComet",
-      "CoffeePanda","AstroStag","JumperYak","SilentRaven","CrystalFox","GoldenWolf",
-      "NeonCrab","StormPuffin","RocketLynx","BlitzKoala","GalaxyPanda","CleverSeal",
-      "WindYak","TurboStork","CosmicRhino","DriftLemur","ShadowLynx","PixelRhino",
-      "NinjaYak","FuzzyKoala","MagmaStag","SilverRhino","QuantumOtter","SushiPigeon",
-      "CyberYak","StormYak"
-    ];
-    function getRandomUsername() { return usernames[Math.floor(Math.random() * usernames.length)]; }
-    function randomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-
-    function generateFakeOpponentScore() {
-      const info = getLevelInfo(playerScore);
-      let fake = 0;
-      if (info.level === 1) fake = randomInt(0, 89);
-      else if (info.level === 2) fake = randomInt(90, 199);
-      else if (info.level === 3) fake = randomInt(200, 499);
-      else if (info.level === 4) fake = randomInt(500, 1000);
-      else {
-        const lowerMin = 1001;
-        const lowerMax = Math.max(playerScore, lowerMin);
-        const higherMin = Math.max(playerScore + 1, lowerMin);
-        const higherMax = 1800;
-        const r = Math.random();
-        if (r < 0.7 || higherMin > higherMax) fake = randomInt(lowerMin, lowerMax);
-        else fake = randomInt(higherMin, higherMax);
-      }
-      opponentScoreFake = fake;
-    }
-
-    // ===== BOT HUMÀ =====
-    const bot = { mode: "normal", targetY: canvas.height / 2, reactionTimer: 0, changeModeTimer: 0 };
-    const defaultBotDifficulty = { errorScale: 1, forcedErrorChance: 0.15, speedScale: 1, reactionScale: 1 };
-    let botDifficulty = { ...defaultBotDifficulty };
-
-    function randomBotMode() {
-      const r = Math.random();
-      if (r < 0.5) return "normal";
-      if (r < 0.8) return "aggressive";
-      return "lazy";
-    }
-
-    function updateBotDifficultyFromScore() {
-      let s = playerScore;
-      if (s <= 89) {
-        botDifficulty.errorScale = 2.5; botDifficulty.forcedErrorChance = 0.25; botDifficulty.speedScale = 0.6; botDifficulty.reactionScale = 1.5;
-      } else if (s <= 199) {
-        botDifficulty.errorScale = 1.5; botDifficulty.forcedErrorChance = 0.20; botDifficulty.speedScale = 0.8; botDifficulty.reactionScale = 1.2;
-      } else if (s <= 499) {
-        botDifficulty = { ...defaultBotDifficulty };
-      } else if (s <= 1000) {
-        botDifficulty.errorScale = 0.7; botDifficulty.forcedErrorChance = 0.10; botDifficulty.speedScale = 1.2; botDifficulty.reactionScale = 0.85;
-      } else {
-        botDifficulty.errorScale = 0.5; botDifficulty.forcedErrorChance = 0.07; botDifficulty.speedScale = 1.5; botDifficulty.reactionScale = 0.7;
-      }
-    }
-
-    function botErrorOffset() {
-      let range = 25;
-      if (bot.mode === "lazy") range = 45;
-      if (bot.mode === "aggressive") range = 20;
-      const speed = Math.sqrt(ball.vx*ball.vx + ball.vy*ball.vy);
-      if (speed > initialBallSpeed * 1.3) range += 20;
-      range *= botDifficulty.errorScale;
-      return (Math.random() * 2 - 1) * range;
-    }
-
-    function resetBotState() {
-      bot.mode = randomBotMode();
-      bot.targetY = canvas.height/2;
-      const base = randomInt(6, 14);
-      bot.reactionTimer = Math.max(1, Math.round(base * botDifficulty.reactionScale));
-      bot.changeModeTimer = randomInt(180, 420);
-    }
-
-    function updateBot() {
-      rightPaddle.vy = 0;
-      const center = rightPaddle.y + paddleHeight / 2;
-
-      bot.changeModeTimer--;
-      if (bot.changeModeTimer <= 0) {
-        bot.mode = randomBotMode();
-        bot.changeModeTimer = randomInt(240, 480);
-      }
-
-      if (ball.vx <= 0) {
-        const diff = (canvas.height/2) - center;
-        const baseFactor = (bot.mode === "lazy") ? 0.35 : 0.5;
-        const factor = baseFactor * botDifficulty.speedScale;
-        if (Math.abs(diff) > 6) rightPaddle.vy = diff > 0 ? paddleSpeed * factor : -paddleSpeed * factor;
-        return;
-      }
-
-      bot.reactionTimer--;
-      if (bot.reactionTimer <= 0) {
-        const minBase = (bot.mode === "aggressive") ? 3 : 6;
-        const maxBase = (bot.mode === "lazy") ? 16 : 10;
-        const baseVal = randomInt(minBase, maxBase);
-        bot.reactionTimer = Math.max(1, Math.round(baseVal * botDifficulty.reactionScale));
-        bot.targetY = ball.y + botErrorOffset();
-        if (Math.random() < 0.08) bot.targetY += (Math.random() < 0.5 ? -1 : 1) * randomInt(20, 60);
-      }
-
-      const nearRightSide = ball.x > canvas.width * 0.66;
-      const speed = Math.abs(ball.vx);
-      if (nearRightSide && speed > initialBallSpeed && Math.random() < botDifficulty.forcedErrorChance) {
-        if (Math.random() < 0.5) rightPaddle.vy = 0;
-        else rightPaddle.vy = paddleSpeed * (ball.y < center ? 1 : -1) * botDifficulty.speedScale;
-        return;
-      }
-
-      const diffY = bot.targetY - center;
-      if (Math.abs(diffY) > 4) {
-        let baseFactor = 0.9;
-        if (bot.mode === "lazy") baseFactor = 0.7;
-        if (bot.mode === "aggressive") baseFactor = 1.1;
-        const factor = baseFactor * botDifficulty.speedScale;
-        rightPaddle.vy = diffY > 0 ? paddleSpeed * factor : -paddleSpeed * factor;
-      } else {
-        rightPaddle.vy = 0;
-      }
-    }
-
-    // ===== MENÚ: seleccions =====
-    function enableModeButtons() { [btnModeClassic, btnModeRapid, btnModeLong].forEach(b => b.classList.remove("btn-disabled")); }
-    function clearTypeSelection() { btnType2P.classList.remove("btn-selected"); btnTypeOnline.classList.remove("btn-selected"); }
-    function clearModeSelection() { btnModeClassic.classList.remove("btn-selected"); btnModeRapid.classList.remove("btn-selected"); btnModeLong.classList.remove("btn-selected"); }
-    function updateStartButtonState() { (selectedType && selectedMode) ? btnStartGame.classList.remove("btn-disabled") : btnStartGame.classList.add("btn-disabled"); }
-
-    btnType2P.addEventListener("click", () => {
-      ensureAudio();
-      selectedType = "2p";
-      isOnline = false;
-      clearTypeSelection();
-      btnType2P.classList.add("btn-selected");
-      enableModeButtons();
-      opponentName = "Jugador 2";
-      updateStartButtonState();
-    });
-
-    btnTypeOnline.addEventListener("click", () => {
-      ensureAudio();
-      selectedType = "online";
-      isOnline = true;
-      clearTypeSelection();
-      btnTypeOnline.classList.add("btn-selected");
-      enableModeButtons();
-      startFakeMatchmaking();
-      updateStartButtonState();
-    });
-
-    function selectMode(modeKey) {
-      if (!selectedType) return;
-      selectedMode = modeKey;
-      clearModeSelection();
-
-      let modeNameText = "";
-      if (modeKey === "classic") { btnModeClassic.classList.add("btn-selected"); targetScore = 7; speedFactor = 1; modeNameText = "Clàssic"; }
-      else if (modeKey === "rapid") { btnModeRapid.classList.add("btn-selected"); targetScore = 7; speedFactor = 1.5; modeNameText = "Ràpid (velocitat x1.5)"; }
-      else if (modeKey === "long") { btnModeLong.classList.add("btn-selected"); targetScore = 14; speedFactor = 1; modeNameText = "Long"; }
-
-      lastGameConfig = { isOnline, targetScore, speedFactor, modeName: modeNameText, opponentName, selectedMode };
-      updateStartButtonState();
-    }
-
-    btnModeClassic.addEventListener("click", () => { ensureAudio(); selectMode("classic"); });
-    btnModeRapid.addEventListener("click", () => { ensureAudio(); selectMode("rapid"); });
-    btnModeLong.addEventListener("click", () => { ensureAudio(); selectMode("long"); });
-
-    btnStartGame.addEventListener("click", () => { ensureAudio(); if (!selectedType || !selectedMode) return; startGame(); });
-
-    // ===== MATCHMAKING FALS =====
-    let dotsInterval = null;
-    function startFakeMatchmaking() {
-      matchmakingOverlay.classList.remove("hidden");
-      let step = 0;
-      if (dotsInterval) clearInterval(dotsInterval);
-      dotsInterval = setInterval(() => {
-        const dots = ["·", "··", "···", "····"];
-        dotsEl.textContent = dots[step % dots.length];
-        step++;
-      }, 300);
-
-      const delay = randomInt(2000, 5000);
-      setTimeout(() => {
-        opponentName = getRandomUsername();
-        generateFakeOpponentScore();
-        matchmakingOverlay.classList.add("hidden");
-        clearInterval(dotsInterval);
-      }, delay);
-    }
-
-    // ===== Punts / ratxes / monedes =====
-    function applySpeedFactor() { paddleSpeed = basePaddleSpeed * speedFactor; initialBallSpeed = baseBallSpeed * speedFactor; }
-
-    function resetBall(direction) {
-      ball.x = canvas.width/2;
-      ball.y = canvas.height/2;
-      const angle = Math.random() * 0.6 - 0.3;
-      ball.vx = initialBallSpeed * direction;
-      ball.vy = initialBallSpeed * angle * 2;
-      resetBotState();
-    }
-
-    function resetScoresAndPositions() {
-      scoreLeft = 0;
-      scoreRight = 0;
-      leftPaddle.y = canvas.height/2 - paddleHeight/2;
-      rightPaddle.y = canvas.height/2 - paddleHeight/2;
-      resetBall(Math.random() > 0.5 ? 1 : -1);
-    }
-
-    function startGame() {
-      applySpeedFactor();
-      if (isOnline) { updateBotDifficultyFromScore(); generateFakeOpponentScore(); }
-      resetScoresAndPositions();
-      resetBotState();
-      mainMenu.classList.add("hidden");
-      endScreen.classList.add("hidden");
-      isPlaying = true;
-    }
-
-    function applyStreak(playerWon) {
-      if (!isOnline) return;
-      if (playerWon) {
-        streakNow += 1;
-        if (streakNow > streakBest) streakBest = streakNow;
-      } else {
-        streakNow = 0;
-      }
-      saveStreaks();
-      updateStreakUI();
-    }
-
-    function updateOnlineScore(playerWon) {
-      if (!isOnline) return;
-      const beforeLevel = getLevelInfo(playerScore).level;
-
-      let delta = 0;
-      if (selectedMode === "classic") delta = playerWon ? 30 : -10;
-      else if (selectedMode === "rapid") delta = playerWon ? 15 : -7;
-      else if (selectedMode === "long") delta = playerWon ? 55 : -18;
-
-      playerScore += delta;
-      if (playerScore < 0) playerScore = 0;
-
-      savePlayerScore();
-      updateScoreAndLevelUI();
-
-      const afterLevel = getLevelInfo(playerScore).level;
-      if (afterLevel > beforeLevel) {
-        showToast(`Nivell ${afterLevel}! 🔥`);
-        pulseLevelUI();
-      }
-    }
-
-    // Monedes: +10 per punt fet, -7 per punt rebut. Si surt negatiu => guany 0.
-    function awardCoinsFromMatch() {
-      if (!isOnline) return { gained: 0, raw: 0 };
-      const raw = (scoreLeft * 10) - (scoreRight * 7);
-      const gained = Math.max(0, raw);
-      coins += gained;
-      saveCoins();
-      updateCoinsUI();
-      return { gained, raw };
-    }
-
-    function endGame(winnerLabel, playerWonOnline) {
-      isPlaying = false;
-
-      let coinInfo = { gained: 0, raw: 0 };
-      if (typeof playerWonOnline === "boolean") {
-        applyStreak(playerWonOnline);
-        updateOnlineScore(playerWonOnline);
-        coinInfo = awardCoinsFromMatch();
-      }
-
-      winnerText.textContent = winnerLabel + " ha guanyat!";
-      modeInfoText.textContent = (lastGameConfig.modeName || "") + (lastGameConfig.isOnline ? " · Contra un bot" : " · 2 jugadors");
-
-      if (isOnline) {
-        if (coinInfo.raw < 0) coinsEndText.textContent = `Monedes: ${scoreLeft}·(+10) − ${scoreRight}·(−7) = ${coinInfo.raw} → guany 0`;
-        else coinsEndText.textContent = `Monedes guanyades: ${coinInfo.gained} (total: ${coins})`;
-
-        streakEndText.textContent = `Ratxa actual: ${streakNow} · Millor ratxa: ${streakBest}`;
-        if (playerWonOnline) sfxWin(); else sfxLose();
-      } else {
-        coinsEndText.textContent = "";
-        streakEndText.textContent = "";
-      }
-
-      endScreen.classList.remove("hidden");
-    }
-
-    btnReplay.addEventListener("click", () => {
-      ensureAudio();
-      isOnline = lastGameConfig.isOnline;
-      opponentName = lastGameConfig.opponentName;
-      targetScore = lastGameConfig.targetScore;
-      speedFactor = lastGameConfig.speedFactor;
-      selectedMode = lastGameConfig.selectedMode;
-      applySpeedFactor();
-      if (isOnline) { updateBotDifficultyFromScore(); generateFakeOpponentScore(); }
-      resetScoresAndPositions();
-      endScreen.classList.add("hidden");
-      isPlaying = true;
-    });
-
-    btnBackToMenu.addEventListener("click", () => { ensureAudio(); window.location.reload(); });
-
-    // ===== Input =====
-    const keys = { w: false, s: false, ArrowUp: false, ArrowDown: false };
-    document.addEventListener("keydown", e => { if (e.key in keys) keys[e.key] = true; });
-    document.addEventListener("keyup", e => { if (e.key in keys) keys[e.key] = false; });
-
-    function checkScore() {
-      if (scoreLeft >= targetScore || scoreRight >= targetScore) {
-        let winnerLabel;
-        let playerWonOnline = null;
-
-        if (scoreLeft > scoreRight) {
-          winnerLabel = isOnline ? playerName : "Jugador 1";
-          if (isOnline) playerWonOnline = true;
-        } else {
-          winnerLabel = isOnline ? opponentName : "Jugador 2";
-          if (isOnline) playerWonOnline = false;
-        }
-        endGame(winnerLabel, playerWonOnline);
-      }
-    }
-
-    // ===== Update loop =====
-    function update() {
-      if (!isPlaying) return;
-
-      leftPaddle.vy = 0;
-      rightPaddle.vy = 0;
-
-      if (keys.w) leftPaddle.vy = -paddleSpeed;
-      if (keys.s) leftPaddle.vy = paddleSpeed;
-
-      if (isOnline) updateBot();
-      else {
-        if (keys.ArrowUp) rightPaddle.vy = -paddleSpeed;
-        if (keys.ArrowDown) rightPaddle.vy = paddleSpeed;
-      }
-
-      leftPaddle.y += leftPaddle.vy;
-      rightPaddle.y += rightPaddle.vy;
-
-      leftPaddle.y = Math.max(0, Math.min(canvas.height - paddleHeight, leftPaddle.y));
-      rightPaddle.y = Math.max(0, Math.min(canvas.height - paddleHeight, rightPaddle.y));
-
-      ball.x += ball.vx;
-      ball.y += ball.vy;
-
-      if (ball.y - 9 <= 0 || ball.y + 9 >= canvas.height) { ball.vy *= -1; sfxHit(); }
-
-      if (ball.x - 9 <= leftPaddle.x + paddleWidth && ball.y >= leftPaddle.y && ball.y <= leftPaddle.y + paddleHeight && ball.vx < 0) {
-        ball.vx *= -1;
-        const intersection = (ball.y - (leftPaddle.y + paddleHeight/2)) / (paddleHeight/2);
-        ball.vy = initialBallSpeed * intersection;
-        sfxHit();
-      }
-
-      if (ball.x + 9 >= rightPaddle.x && ball.y >= rightPaddle.y && ball.y <= rightPaddle.y + paddleHeight && ball.vx > 0) {
-        ball.vx *= -1;
-        const intersection = (ball.y - (rightPaddle.y + paddleHeight/2)) / (paddleHeight/2);
-        ball.vy = initialBallSpeed * intersection;
-        sfxHit();
-      }
-
-      if (ball.x + 9 < 0) { scoreRight++; sfxPoint(); checkScore(); resetBall(1); }
-      if (ball.x - 9 > canvas.width) { scoreLeft++; sfxPoint(); checkScore(); resetBall(-1); }
-    }
-
-    // ===== Dibuix =====
-    function drawCourt() {
-      ctx.fillStyle = "#050505";
-      ctx.fillRect(0,0,canvas.width,canvas.height);
-      ctx.setLineDash([10,10]);
-      ctx.strokeStyle = "#333";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(canvas.width/2,0);
-      ctx.lineTo(canvas.width/2,canvas.height);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-
-    function drawPaddles() {
-      ctx.fillStyle = getEquippedColor();
-      ctx.fillRect(leftPaddle.x, leftPaddle.y, paddleWidth, paddleHeight);
-
-      ctx.fillStyle = "#e5e5e5";
-      ctx.fillRect(rightPaddle.x, rightPaddle.y, paddleWidth, paddleHeight);
-    }
-
-    function drawBall() {
-      ctx.beginPath();
-      ctx.arc(ball.x, ball.y, 9, 0, Math.PI*2);
-      ctx.fillStyle = "#facc15";
-      ctx.fill();
-    }
-
-    function drawScoreAndNames() {
-      ctx.fillStyle = "#f5f5f5";
-      ctx.textAlign = "center";
-
-      ctx.font = "16px system-ui";
-      ctx.fillText(playerName, canvas.width/2 - 140, 30);
-      ctx.fillText(isOnline ? opponentName : "Jugador 2", canvas.width/2 + 140, 30);
-
-      ctx.font = "11px system-ui";
-      ctx.fillText("Punts: " + playerScore, canvas.width/2 - 140, 44);
-      if (isOnline) ctx.fillText("Punts: " + opponentScoreFake, canvas.width/2 + 140, 44);
-
-      ctx.fillStyle = "#facc15";
-      ctx.fillText("Monedes: " + coins, canvas.width/2, 44);
-      ctx.fillStyle = "#f5f5f5";
-
-      ctx.font = "bold 40px system-ui";
-      ctx.fillText(scoreLeft, canvas.width/2 - 60, 70);
-      ctx.fillText(scoreRight, canvas.width/2 + 60, 70);
-
-      ctx.font = "12px system-ui";
-      ctx.globalAlpha = 0.8;
-      ctx.fillText(lastGameConfig.modeName || "", canvas.width/2, canvas.height - 30);
-
-      if (isOnline) ctx.fillText("Ratxa: " + streakNow + " (millor " + streakBest + ")", canvas.width/2, canvas.height - 15);
-      ctx.globalAlpha = 1;
-    }
-
-    function render() { drawCourt(); drawPaddles(); drawBall(); drawScoreAndNames(); }
-
-    // ===== Loop =====
-    function gameLoop() { update(); render(); requestAnimationFrame(gameLoop); }
-    gameLoop();
-
-    // ===== Activar àudio en el primer clic =====
-    document.addEventListener("pointerdown", () => ensureAudio(), { once: true });
-
-    // ===== Estat UI =====
-    function updateStartButtonState() { (selectedType && selectedMode) ? btnStartGame.classList.remove("btn-disabled") : btnStartGame.classList.add("btn-disabled"); }
-
-    // ===== Init extra UI =====
-    function initHeaderCoins() { updateCoinsUI(); }
-    initHeaderCoins();
-  </script>
-</body>
-</html>
+    const leftPaddle = { x: 40, y: canvas.height/2 - p
